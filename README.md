@@ -57,9 +57,11 @@ class AppDioPreferences implements DioPreferences {
 Defines network-level behavior:
 - `baseUrl`
 - `appVersion`
-- `os`
 - `refreshPath`
-- timeouts
+- request timeouts + socket timeouts (`connectTimeout`, `receiveTimeout`, `idleTimeout`, `connectionTimeout`)
+- auto OS header (configurable via `includeOsHeader` or `osOverride`)
+- customizable header keys (`headerKeys`)
+- optional Bearer prefix (`useBearerTokenPrefix`)
 - logging toggle
 
 ### 3) `NetworkEvents`
@@ -79,7 +81,6 @@ final factory = NetworkKitFactory(
   config: NetworkConfig(
     baseUrl: 'https://example.com/api/',
     appVersion: '1.0.0',
-    os: 'android',
     enableLogging: true,
   ),
   events: NetworkEvents(
@@ -95,6 +96,21 @@ final factory = NetworkKitFactory(
 );
 
 final dio = await factory.createDio();
+```
+
+Advanced header configuration:
+
+```dart
+config: NetworkConfig(
+  baseUrl: 'https://example.com/api/',
+  appVersion: '1.0.0',
+  useBearerTokenPrefix: false,
+  includeOsHeader: true,
+  headerKeys: const NetworkHeaderKeys(
+    authorization: 'Authorization',
+    language: 'X-Language',
+  ),
+)
 ```
 
 ## Connectivity

@@ -73,7 +73,6 @@ class _ExampleHomePageState extends State<ExampleHomePage> {
       config: const NetworkConfig(
         baseUrl: 'https://jsonplaceholder.typicode.com/',
         appVersion: '1.0.0',
-        os: 'android',
         enableLogging: true,
       ),
       events: NetworkEvents(

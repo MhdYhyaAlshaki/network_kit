@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 
 import '../cancel_token/cancel_token_service.dart';
-import '../dio/himma_network_factory.dart';
 import '../models/dio_preferences.dart';
 import '../models/network_config.dart';
 import '../models/network_events.dart';
@@ -35,7 +34,8 @@ class AuthInterceptor extends Interceptor {
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     final token = preferences.accessToken;
     if (token.isNotEmpty) {
-      options.headers[DioHeaders.authorization] = 'Bearer $token';
+      options.headers[config.headerKeys.authorization] =
+          config.useBearerTokenPrefix ? 'Bearer $token' : token;
     }
     handler.next(options);
   }
@@ -105,8 +105,10 @@ class AuthInterceptor extends Interceptor {
         method: options.method,
         headers:
             options.headers
-              ..[DioHeaders.authorization] =
-                  'Bearer ${preferences.accessToken}',
+              ..[config.headerKeys.authorization] =
+                  config.useBearerTokenPrefix
+                      ? 'Bearer ${preferences.accessToken}'
+                      : preferences.accessToken,
       ),
       data: _cloneRequestData(options.data),
       onSendProgress: options.onSendProgress,
@@ -150,13 +152,7 @@ class AuthInterceptor extends Interceptor {
         formData.fields.add(MapEntry(entry.key, entry.value));
       }
       for (final entry in data.files) {
-        final newFile =
-            entry.value.clone() ??
-            MultipartFile.fromFileSync(
-              entry.value.filename ?? '',
-              filename: entry.value.filename,
-              contentType: entry.value.contentType,
-            );
+        final newFile = entry.value.clone();
         formData.files.add(MapEntry(entry.key, newFile));
       }
       return formData;

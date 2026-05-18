@@ -46,13 +46,7 @@ class ConnectionClosedInterceptor extends Interceptor {
         formData.fields.add(MapEntry(entry.key, entry.value));
       }
       for (final entry in data.files) {
-        final newFile =
-            entry.value.clone() ??
-            MultipartFile.fromFileSync(
-              entry.value.filename ?? '',
-              filename: entry.value.filename,
-              contentType: entry.value.contentType,
-            );
+        final newFile = entry.value.clone();
         formData.files.add(MapEntry(entry.key, newFile));
       }
       return formData;

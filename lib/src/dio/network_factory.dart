@@ -15,23 +15,6 @@ import '../models/dio_preferences.dart';
 import '../models/network_config.dart';
 import '../models/network_events.dart';
 
-class DioHeaders {
-  static const String applicationJson = 'application/json';
-  static const String multipartJson = 'multipart/form-data';
-  static const String contentType = 'content-type';
-  static const String language = 'Accept-Language';
-  static const String currency = 'Accept-Currency';
-  static const String accept = 'accept';
-  static const String authorization = 'authorization';
-  static const String version = 'version';
-  static const String os = 'os';
-
-  static Map<String, String> get headers => {
-    DioHeaders.contentType: DioHeaders.applicationJson,
-    DioHeaders.accept: DioHeaders.applicationJson,
-  };
-}
-
 class NetworkKitFactory {
   final DioPreferences preferences;
   final NetworkConfig config;
@@ -54,21 +37,26 @@ class NetworkKitFactory {
       (dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
         final context = SecurityContext.defaultContext;
         final client = HttpClient(context: context);
-        client.idleTimeout = const Duration(seconds: 30);
-        client.connectionTimeout = const Duration(seconds: 5);
-        dio.options.headers['keep-alive'] = 'true';
+        client.idleTimeout = config.idleTimeout;
+        client.connectionTimeout = config.connectionTimeout;
+        dio.options.headers[config.headerKeys.keepAlive] = 'true';
         dio.options.extra = {'withCredentials': config.withCredentials};
         return client;
       };
     }
 
-    final headers =
-        DioHeaders.headers..addAll({
-          if (preferences.accessToken.isNotEmpty)
-            DioHeaders.authorization: 'Bearer ${preferences.accessToken}',
-          DioHeaders.version: config.appVersion,
-          DioHeaders.os: config.os.toLowerCase(),
-        });
+    final headers = <String, String>{
+      config.headerKeys.contentType: 'application/json',
+      config.headerKeys.accept: 'application/json',
+      if (preferences.accessToken.isNotEmpty)
+        config.headerKeys.authorization:
+            config.useBearerTokenPrefix
+                ? 'Bearer ${preferences.accessToken}'
+                : preferences.accessToken,
+      config.headerKeys.version: config.appVersion,
+      if (config.includeOsHeader)
+        config.headerKeys.os: _resolveOs().toLowerCase(),
+    };
 
     dio.options = BaseOptions(
       baseUrl: config.baseUrl,
@@ -89,7 +77,9 @@ class NetworkKitFactory {
     dio.interceptors.add(ConnectionClosedInterceptor(dio));
     dio.interceptors.add(authInterceptor);
     dio.interceptors.add(GeneralInterceptor(events: events));
-    dio.interceptors.add(LanguageInterceptor(preferences: preferences));
+    dio.interceptors.add(
+      LanguageInterceptor(preferences: preferences, config: config),
+    );
     dio.interceptors.add(
       CancelInterceptor(
         cancelTokenService: cancelTokenService,
@@ -110,5 +100,18 @@ class NetworkKitFactory {
     }
 
     return dio;
+  }
+
+  String _resolveOs() {
+    if (config.osOverride?.isNotEmpty ?? false) {
+      return config.osOverride!;
+    }
+    if (kIsWeb) return 'web';
+    if (Platform.isAndroid) return 'android';
+    if (Platform.isIOS) return 'ios';
+    if (Platform.isMacOS) return 'macos';
+    if (Platform.isWindows) return 'windows';
+    if (Platform.isLinux) return 'linux';
+    return 'unknown';
   }
 }
