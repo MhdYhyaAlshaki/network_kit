@@ -17,6 +17,18 @@ dependencies:
     path: packages/network_kit
 ```
 
+## Example
+
+A runnable Flutter example is available at `example/`.
+
+From `packages/network_kit` run:
+
+```bash
+cd example
+flutter pub get
+flutter run
+```
+
 ## Core Concepts
 
 ### 1) `DioPreferences`
