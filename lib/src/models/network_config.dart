@@ -22,7 +22,15 @@ class NetworkHeaderKeys {
 
 class NetworkConfig {
   final String baseUrl;
+
+  /// Manually supplied version string.
+  /// Ignored when [autoAppVersion] is true (the default).
   final String appVersion;
+
+  /// When true (default), the factory resolves the version automatically
+  /// via `PackageInfo.fromPlatform()` and ignores [appVersion].
+  final bool autoAppVersion;
+
   final String refreshPath;
   final Duration connectTimeout;
   final Duration receiveTimeout;
@@ -37,7 +45,8 @@ class NetworkConfig {
 
   const NetworkConfig({
     required this.baseUrl,
-    required this.appVersion,
+    this.appVersion = '',
+    this.autoAppVersion = true,
     this.refreshPath = 'auth/refresh',
     this.connectTimeout = const Duration(seconds: 60),
     this.receiveTimeout = const Duration(seconds: 60),

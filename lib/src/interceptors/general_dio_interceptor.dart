@@ -14,13 +14,14 @@ class GeneralInterceptor extends Interceptor {
     ResponseInterceptorHandler handler,
   ) async {
     try {
-      final statusCode = ResponseStatusCode.fromMap(
-        (response.data is Map<String, dynamic>)
-            ? response.data as Map<String, dynamic>
-            : <String, dynamic>{},
-      );
+      final dataMap =
+          response.data is Map<String, dynamic>
+              ? response.data as Map<String, dynamic>
+              : <String, dynamic>{};
 
-      if ((statusCode?.isError ?? false)) {
+      final status = ResponseStatusCode.fromMap(dataMap);
+
+      if (status is ResponseStatusCode && status.isError) {
         final error = DioException.badResponse(
           requestOptions: RequestOptions(path: response.requestOptions.path),
           response: response,
@@ -30,24 +31,22 @@ class GeneralInterceptor extends Interceptor {
         return;
       }
 
+      // Read the raw status code from the body using all registered keys.
       final rawStatus =
           response.data is Map
-              ? response.data[DioResponseKey.statusCode]?.toString()
+              ? DioResponseKey.firstValue(
+                  DioResponseKey.statusCodeKeys,
+                  response.data as Map,
+                )?.toString()
               : null;
-      if ([
-            ResponseStatusCode.errorUnauthorized.value,
-            ResponseStatusCode.unAuthenticated.value,
-          ].contains(rawStatus) ||
-          [
-            ResponseStatusCode.errorUnauthorized.value,
-            ResponseStatusCode.unAuthenticated.value,
-          ].contains(response.statusCode?.toString())) {
+
+      final httpStatus = response.statusCode?.toString();
+
+      if (_isUnauthorized(rawStatus, httpStatus)) {
         await events.onUnauthorized?.call();
-      } else if (response.statusCode?.toString() ==
-              ResponseStatusCode.oldVersion.value ||
-          rawStatus == ResponseStatusCode.oldVersion.value) {
+      } else if (_isOldVersion(rawStatus, httpStatus)) {
         await events.onOldVersion?.call(_extractLastVersion(response.data));
-      } else if (statusCode == ResponseStatusCode.errorNotFound) {
+      } else if (status == ResponseStatusCode.errorNotFound) {
         final error = DioException.badResponse(
           requestOptions: RequestOptions(path: response.requestOptions.path),
           response: response,
@@ -57,10 +56,11 @@ class GeneralInterceptor extends Interceptor {
         return;
       }
 
-      if (statusCode == ResponseStatusCode.needToCompleteProfile) {
+      if (status == ResponseStatusCode.needToCompleteProfile) {
         await events.onNeedCompleteProfile?.call();
       }
     } catch (_) {}
+
     handler.next(response);
   }
 
@@ -72,36 +72,48 @@ class GeneralInterceptor extends Interceptor {
     try {
       final rawStatus =
           err.response?.data is Map
-              ? err.response?.data[DioResponseKey.statusCode]?.toString()
+              ? DioResponseKey.firstValue(
+                  DioResponseKey.statusCodeKeys,
+                  err.response!.data as Map,
+                )?.toString()
               : null;
-      if ([
-            ResponseStatusCode.errorUnauthorized.value,
-            ResponseStatusCode.unAuthenticated.value,
-          ].contains(rawStatus) ||
-          [
-            ResponseStatusCode.errorUnauthorized.value,
-            ResponseStatusCode.unAuthenticated.value,
-          ].contains(err.response?.statusCode?.toString())) {
+
+      final httpStatus = err.response?.statusCode?.toString();
+
+      if (_isUnauthorized(rawStatus, httpStatus)) {
         await events.onUnauthorized?.call();
-      } else if ([
-        err.response?.statusCode?.toString(),
-        rawStatus,
-      ].contains(ResponseStatusCode.oldVersion.value)) {
-        await events.onOldVersion?.call(
-          _extractLastVersion(err.response?.data),
-        );
+      } else if (_isOldVersion(rawStatus, httpStatus)) {
+        await events.onOldVersion
+            ?.call(_extractLastVersion(err.response?.data));
       }
     } catch (_) {}
 
     handler.next(err);
   }
 
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  bool _isUnauthorized(String? rawStatus, String? httpStatus) {
+    final codes = [
+      ResponseStatusCode.errorUnauthorized.value,
+      ResponseStatusCode.unAuthenticated.value,
+    ];
+    return codes.contains(rawStatus) || codes.contains(httpStatus);
+  }
+
+  bool _isOldVersion(String? rawStatus, String? httpStatus) {
+    final code = ResponseStatusCode.oldVersion.value;
+    return rawStatus == code || httpStatus == code;
+  }
+
   dynamic _extractLastVersion(dynamic data) {
     if (data is Map) {
-      final dynamic nested = data['data'];
-      if (nested is Map) {
-        return nested['last version'];
-      }
+      // Try all registered data keys to find the nested payload.
+      final nested = DioResponseKey.firstValue(
+        DioResponseKey.dataKeys,
+        data,
+      );
+      if (nested is Map) return nested['last version'];
     }
     return null;
   }
