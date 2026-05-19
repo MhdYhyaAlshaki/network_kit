@@ -78,7 +78,7 @@ App callbacks for side effects:
 final cancelTokenService = CancelTokenService();
 
 final factory = NetworkKitFactory(
-  preferences: appDioPreferences,
+  preferences: AppDioPreferences,
   config: NetworkConfig(
     baseUrl: 'https://example.com/api/',
     appVersion: '1.0.0',
