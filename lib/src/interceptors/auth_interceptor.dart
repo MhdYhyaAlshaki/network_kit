@@ -68,8 +68,8 @@ class AuthInterceptor extends Interceptor {
         cancelTokenService?.setRefreshing(true);
         try {
           final newTokens = await _refreshToken();
-          await preferences.setAccessToken(newTokens['access_token'] ?? '');
-          await preferences.setRefreshToken(newTokens['refresh_token'] ?? '');
+          await preferences.setAccessToken(newTokens[config.accessTokenKey] ?? '');
+          await preferences.setRefreshToken(newTokens[config.refreshTokenKey] ?? '');
 
           for (final request in _requestQueue.reversed) {
             await request();
@@ -122,7 +122,7 @@ class AuthInterceptor extends Interceptor {
     final response = await dio.post(
       refreshUrl,
       data: {
-        'refresh_token': preferences.refreshToken,
+        config.refreshTokenKey: preferences.refreshToken,
         if (deviceToken != null) 'fcmToken': deviceToken,
       },
     );
@@ -140,8 +140,8 @@ class AuthInterceptor extends Interceptor {
 
     final data = (response.data as Map)['data'] as Map?;
     return {
-      'access_token': data?['access_token']?.toString() ?? '',
-      'refresh_token': data?['refresh_token']?.toString() ?? '',
+      config.accessTokenKey: data?[config.accessTokenKey]?.toString() ?? '',
+      config.refreshTokenKey: data?[config.refreshTokenKey]?.toString() ?? '',
     };
   }
 

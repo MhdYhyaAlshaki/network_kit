@@ -41,6 +41,10 @@ class NetworkConfig {
   final bool includeOsHeader;
   final String? osOverride;
   final bool useBearerTokenPrefix;
+  // The key in the response JSON where the access token can be found in the refresh response. Default is 'access_token'.
+  final String accessTokenKey;
+  // The key in the response JSON where the refresh token can be found in the refresh response. Default is 'refresh_token'.
+  final String refreshTokenKey;
   final NetworkHeaderKeys headerKeys;
 
   const NetworkConfig({
@@ -57,6 +61,8 @@ class NetworkConfig {
     this.includeOsHeader = true,
     this.osOverride,
     this.useBearerTokenPrefix = true,
+    this.accessTokenKey = 'access_token',
+    this.refreshTokenKey = 'refresh_token',
     this.headerKeys = const NetworkHeaderKeys(),
   });
 
