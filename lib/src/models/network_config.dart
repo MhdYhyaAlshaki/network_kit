@@ -20,6 +20,8 @@ class NetworkHeaderKeys {
   });
 }
 
+typedef RefreshTokenValueDecoder = String? Function(dynamic responseBody);
+
 class NetworkConfig {
   final String baseUrl;
 
@@ -41,10 +43,22 @@ class NetworkConfig {
   final bool includeOsHeader;
   final String? osOverride;
   final bool useBearerTokenPrefix;
+  // Enables automatic token refresh flow on unauthorized responses.
+  final bool enableRefreshToken;
+  // Enables including fcm token in refresh request payload when available.
+  final bool enableFcmToken;
   // The key in the response JSON where the access token can be found in the refresh response. Default is 'access_token'.
   final String accessTokenKey;
   // The key in the response JSON where the refresh token can be found in the refresh response. Default is 'refresh_token'.
   final String refreshTokenKey;
+  // The key used to send the device Firebase token in refresh request body.
+  final String fcmTokenKey;
+  // Optional custom decoder for access token value from refresh response.
+  // When provided, this takes priority over key-based extraction.
+  final RefreshTokenValueDecoder? accessTokenDecoder;
+  // Optional custom decoder for refresh token value from refresh response.
+  // When provided, this takes priority over key-based extraction.
+  final RefreshTokenValueDecoder? refreshTokenDecoder;
   final NetworkHeaderKeys headerKeys;
 
   const NetworkConfig({
@@ -61,8 +75,13 @@ class NetworkConfig {
     this.includeOsHeader = true,
     this.osOverride,
     this.useBearerTokenPrefix = true,
+    this.enableRefreshToken = true,
+    this.enableFcmToken = true,
     this.accessTokenKey = 'access_token',
     this.refreshTokenKey = 'refresh_token',
+    this.fcmTokenKey = 'fcmToken',
+    this.accessTokenDecoder,
+    this.refreshTokenDecoder,
     this.headerKeys = const NetworkHeaderKeys(),
   });
 

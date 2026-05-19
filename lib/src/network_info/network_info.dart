@@ -50,6 +50,6 @@ class NetworkInfoImplementer implements NetworkInfo {
   Stream<bool> get onNetworkStatusChanged => _networkStatusController.stream;
 
   void dispose() {
-    _networkStatusController.close();
+    _networkStatusController.close();  
   }
 }

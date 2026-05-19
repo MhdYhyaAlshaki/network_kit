@@ -12,6 +12,7 @@ dependencies:
   dio: ^5.4.0
   network_kit:
     path: ../
+  shared_preferences: ^2.5.5
 
 dev_dependencies:
   flutter_test:

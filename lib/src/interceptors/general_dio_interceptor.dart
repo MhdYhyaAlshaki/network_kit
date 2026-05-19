@@ -5,6 +5,7 @@ import '../models/response_status_code.dart';
 
 class GeneralInterceptor extends Interceptor {
   final NetworkEvents events;
+  static const String _handledEventsKey = 'networkKitHandledEvents';
 
   GeneralInterceptor({this.events = const NetworkEvents()});
 
@@ -20,32 +21,22 @@ class GeneralInterceptor extends Interceptor {
               : <String, dynamic>{};
 
       final status = ResponseStatusCode.fromMap(dataMap);
+      final eventPayload = NetworkEventPayload.fromResponse(
+        response,
+        status: status,
+      );
 
-      if (status is ResponseStatusCode && status.isError) {
-        final error = DioException.badResponse(
-          requestOptions: RequestOptions(path: response.requestOptions.path),
-          response: response,
-          statusCode: 400,
-        );
-        handler.reject(error, true);
-        return;
-      }
-
-      // Read the raw status code from the body using all registered keys.
-      final rawStatus =
-          response.data is Map
-              ? DioResponseKey.firstValue(
-                  DioResponseKey.statusCodeKeys,
-                  response.data as Map,
-                )?.toString()
-              : null;
+      final rawStatus = _extractBodyStatusCode(response.data);
 
       final httpStatus = response.statusCode?.toString();
 
-      if (_isUnauthorized(rawStatus, httpStatus)) {
-        await events.onUnauthorized?.call();
+      if (_isUnauthorized(rawStatus, httpStatus) &&
+          _markEventAsHandled(response.requestOptions, 'unauthorized')) {
+        await events.onUnauthorized?.call(eventPayload);
       } else if (_isOldVersion(rawStatus, httpStatus)) {
-        await events.onOldVersion?.call(_extractLastVersion(response.data));
+        if (_markEventAsHandled(response.requestOptions, 'oldVersion')) {
+          await events.onOldVersion?.call(eventPayload);
+        }
       } else if (status == ResponseStatusCode.errorNotFound) {
         final error = DioException.badResponse(
           requestOptions: RequestOptions(path: response.requestOptions.path),
@@ -57,7 +48,17 @@ class GeneralInterceptor extends Interceptor {
       }
 
       if (status == ResponseStatusCode.needToCompleteProfile) {
-        await events.onNeedCompleteProfile?.call();
+        await events.onNeedCompleteProfile?.call(eventPayload);
+      }
+
+      if (_isErrorStatus(status)) {
+        final error = DioException.badResponse(
+          requestOptions: RequestOptions(path: response.requestOptions.path),
+          response: response,
+          statusCode: 400,
+        );
+        handler.reject(error, true);
+        return;
       }
     } catch (_) {}
 
@@ -70,21 +71,24 @@ class GeneralInterceptor extends Interceptor {
     ErrorInterceptorHandler handler,
   ) async {
     try {
-      final rawStatus =
-          err.response?.data is Map
-              ? DioResponseKey.firstValue(
-                  DioResponseKey.statusCodeKeys,
-                  err.response!.data as Map,
-                )?.toString()
-              : null;
+      final dataMap =
+          err.response?.data is Map<String, dynamic>
+              ? err.response!.data as Map<String, dynamic>
+              : <String, dynamic>{};
+      final status = ResponseStatusCode.fromMap(dataMap);
+      final payload = NetworkEventPayload.fromException(err, status: status);
+
+      final rawStatus = _extractBodyStatusCode(err.response?.data);
 
       final httpStatus = err.response?.statusCode?.toString();
 
-      if (_isUnauthorized(rawStatus, httpStatus)) {
-        await events.onUnauthorized?.call();
+      if (_isUnauthorized(rawStatus, httpStatus) &&
+          _markEventAsHandled(err.requestOptions, 'unauthorized')) {
+        await events.onUnauthorized?.call(payload);
       } else if (_isOldVersion(rawStatus, httpStatus)) {
-        await events.onOldVersion
-            ?.call(_extractLastVersion(err.response?.data));
+        if (_markEventAsHandled(err.requestOptions, 'oldVersion')) {
+          await events.onOldVersion?.call(payload);
+        }
       }
     } catch (_) {}
 
@@ -106,15 +110,31 @@ class GeneralInterceptor extends Interceptor {
     return rawStatus == code || httpStatus == code;
   }
 
-  dynamic _extractLastVersion(dynamic data) {
+  bool _isErrorStatus(Object? status) {
+    if (status is ResponseStatusCode) return status.isError;
+    if (status is CustomStatusCode) return status.isError;
+    return false;
+  }
+
+  String? _extractBodyStatusCode(dynamic data) {
     if (data is Map) {
-      // Try all registered data keys to find the nested payload.
-      final nested = DioResponseKey.firstValue(
-        DioResponseKey.dataKeys,
+      return DioResponseKey.firstValue(
+        DioResponseKey.statusCodeKeys,
         data,
-      );
-      if (nested is Map) return nested['last version'];
+      )?.toString();
     }
     return null;
+  }
+
+  bool _markEventAsHandled(RequestOptions options, String eventKey) {
+    final raw = options.extra[_handledEventsKey];
+    final handled =
+        raw is Set<String>
+            ? raw
+            : <String>{if (raw is Iterable) ...raw.whereType<String>()};
+    if (handled.contains(eventKey)) return false;
+    handled.add(eventKey);
+    options.extra[_handledEventsKey] = handled;
+    return true;
   }
 }

@@ -47,6 +47,9 @@ class AppDioPreferences implements DioPreferences {
   String get languageCode => ...;
 
   @override
+  Future<String?> get fcmToken async => null; // optional
+
+  @override
   Future<void> setAccessToken(String token) async => ...;
 
   @override
@@ -61,6 +64,7 @@ Defines network-level behavior:
 - `refreshPath`
 - request timeouts + socket timeouts (`connectTimeout`, `receiveTimeout`, `idleTimeout`, `connectionTimeout`)
 - auto OS header (configurable via `includeOsHeader` or `osOverride`)
+- refresh controls (`enableRefreshToken`, `enableFcmToken`, `fcmTokenKey`)
 - customizable header keys (`headerKeys`)
 - optional Bearer prefix (`useBearerTokenPrefix`)
 - logging toggle
@@ -72,12 +76,19 @@ App callbacks for side effects:
 - `onNeedCompleteProfile`
 - `onVpnDetected`
 
+API-related callbacks (`onUnauthorized`, `onOldVersion`, `onNeedCompleteProfile`)
+receive a `NetworkEventPayload` that contains:
+- `statusCode`
+- `errorMessage`
+- `body`
+- `status` (`ResponseStatusCode` or `CustomStatusCode`)
+
 ## Create Dio
 
 ```dart
 final cancelTokenService = CancelTokenService();
 
-final factory = NetworkKitFactory(
+final factory = NetworkKitFactory.registerAsDefault(
   preferences: AppDioPreferences,
   config: NetworkConfig(
     baseUrl: 'https://example.com/api/',
@@ -86,18 +97,53 @@ final factory = NetworkKitFactory(
     enableLogging: true,
   ),
   events: NetworkEvents(
-    onUnauthorized: () async {
+    onUnauthorized: (event) async {
+      debugPrint('Unauthorized: ${event.statusCode} ${event.errorMessage}');
       // logout + navigate
     },
-    onOldVersion: (payload) async {
+    onOldVersion: (event) async {
+      final payload = event.body;
       // show update dialog
     },
   ),
   cancelTokenService: cancelTokenService,
-  getDeviceToken: () async => null, // optional
 );
 
 final dio = await factory.createDio();
+```
+
+Result-based helper methods:
+
+```dart
+import 'package:multiple_result/multiple_result.dart';
+
+final result = await factory.get('users/me');
+
+switch (result) {
+  case Success(success: final response):
+    debugPrint('Body: ${response.data}');
+  case Error(error: final error):
+    if (error is UnauthorizedError) {
+      // navigate to login
+    } else if (error is TimeoutError) {
+      // show retry action
+    } else {
+      debugPrint('Request failed: ${error.message}');
+    }
+}
+
+// Also available:
+// await factory.post(...);
+// await factory.put(...);
+// await factory.delete(...);
+
+// Optional factory name routing:
+final defaultDio = await NetworkKitFactory.dio();
+final secondaryDio = await NetworkKitFactory.dio(factoryName: 'secondary');
+final defaultResult = await NetworkKitFactory.getFrom(
+  'users/me',
+  factoryName: 'secondary',
+);
 ```
 
 Advanced header configuration:

@@ -13,7 +13,6 @@ class AuthInterceptor extends Interceptor {
   final DioPreferences preferences;
   final NetworkConfig config;
   final NetworkEvents events;
-  final Future<String?> Function()? getDeviceToken;
   final CancelTokenService? cancelTokenService;
 
   bool _isRefreshing = false;
@@ -24,7 +23,6 @@ class AuthInterceptor extends Interceptor {
     required this.preferences,
     required this.config,
     this.events = const NetworkEvents(),
-    this.getDeviceToken,
     this.cancelTokenService,
   });
 
@@ -51,14 +49,26 @@ class AuthInterceptor extends Interceptor {
         return;
       }
 
+      final rawStatusCode =
+          err.response?.data is Map
+              ? DioResponseKey.firstValue(
+                DioResponseKey.statusCodeKeys,
+                err.response!.data as Map,
+              )?.toString()
+              : null;
+
       final isUnauthorized = [
         err.response?.statusCode?.toString(),
-        (err.response?.data is Map)
-            ? err.response?.data[DioResponseKey.statusCode]?.toString()
-            : null,
-      ].contains(ResponseStatusCode.errorUnauthorized.value);
+        rawStatusCode,
+      ].any(
+        (statusCode) =>
+            statusCode == ResponseStatusCode.errorUnauthorized.value ||
+            statusCode == ResponseStatusCode.unAuthenticated.value,
+      );
 
-      if (!isUnauthorized || preferences.refreshToken.isEmpty) {
+      if (!config.enableRefreshToken ||
+          !isUnauthorized ||
+          preferences.refreshToken.isEmpty) {
         handler.next(err);
         return;
       }
@@ -68,8 +78,8 @@ class AuthInterceptor extends Interceptor {
         cancelTokenService?.setRefreshing(true);
         try {
           final newTokens = await _refreshToken();
-          await preferences.setAccessToken(newTokens[config.accessTokenKey] ?? '');
-          await preferences.setRefreshToken(newTokens[config.refreshTokenKey] ?? '');
+          await preferences.setAccessToken(newTokens.accessToken);
+          await preferences.setRefreshToken(newTokens.refreshToken);
 
           for (final request in _requestQueue.reversed) {
             await request();
@@ -80,7 +90,17 @@ class AuthInterceptor extends Interceptor {
           handler.resolve(response);
         } catch (_) {
           _requestQueue.clear();
-          await events.onUnauthorized?.call();
+          final status =
+              err.response?.data is Map<String, dynamic>
+                  ? ResponseStatusCode.fromMap(
+                    err.response!.data as Map<String, dynamic>,
+                  )
+                  : null;
+          final payload = NetworkEventPayload.fromException(
+            err,
+            status: status,
+          );
+          await events.onUnauthorized?.call(payload);
           handler.next(err);
         } finally {
           _isRefreshing = false;
@@ -116,20 +136,24 @@ class AuthInterceptor extends Interceptor {
     );
   }
 
-  Future<Map<String, String>> _refreshToken() async {
-    final String? deviceToken = await getDeviceToken?.call();
+  Future<_RefreshedTokens> _refreshToken() async {
+    final fcmToken = await preferences.fcmToken;
 
     final response = await dio.post(
       refreshUrl,
       data: {
         config.refreshTokenKey: preferences.refreshToken,
-        if (deviceToken != null) 'fcmToken': deviceToken,
+        if (config.enableFcmToken && (fcmToken?.isNotEmpty ?? false))
+          config.fcmTokenKey: fcmToken,
       },
     );
 
     final code =
         response.data is Map
-            ? response.data[DioResponseKey.statusCode]?.toString()
+            ? DioResponseKey.firstValue(
+              DioResponseKey.statusCodeKeys,
+              response.data as Map,
+            )?.toString()
             : null;
     if (code == ResponseStatusCode.errorValidationEntity.value) {
       throw DioException(
@@ -138,11 +162,34 @@ class AuthInterceptor extends Interceptor {
       );
     }
 
-    final data = (response.data as Map)['data'] as Map?;
-    return {
-      config.accessTokenKey: data?[config.accessTokenKey]?.toString() ?? '',
-      config.refreshTokenKey: data?[config.refreshTokenKey]?.toString() ?? '',
-    };
+    return _RefreshedTokens(
+      accessToken:
+          config.accessTokenDecoder?.call(response.data) ??
+          _extractTokenByKey(
+            responseBody: response.data,
+            tokenKey: config.accessTokenKey,
+          ),
+      refreshToken:
+          config.refreshTokenDecoder?.call(response.data) ??
+          _extractTokenByKey(
+            responseBody: response.data,
+            tokenKey: config.refreshTokenKey,
+          ),
+    );
+  }
+
+  String _extractTokenByKey({
+    required dynamic responseBody,
+    required String tokenKey,
+  }) {
+    if (responseBody is! Map) return '';
+    final data = DioResponseKey.firstValue(
+      DioResponseKey.dataKeys,
+      responseBody,
+    );
+    if (data is Map && data[tokenKey] != null) return data[tokenKey].toString();
+    final rootValue = responseBody[tokenKey];
+    return rootValue?.toString() ?? '';
   }
 
   dynamic _cloneRequestData(dynamic data) {
@@ -160,4 +207,14 @@ class AuthInterceptor extends Interceptor {
     if (data is Map) return Map.from(data);
     return data;
   }
+}
+
+class _RefreshedTokens {
+  final String accessToken;
+  final String refreshToken;
+
+  const _RefreshedTokens({
+    required this.accessToken,
+    required this.refreshToken,
+  });
 }

@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 
 class ConnectionClosedInterceptor extends Interceptor {
   final Dio dio;
+  static const _maxRetries = 3;
   static const _retryKey = 'connectionClosedRetryCount';
   static const _connectionClosedMessage =
       'Connection closed before full header was received';
@@ -20,23 +21,52 @@ class ConnectionClosedInterceptor extends Interceptor {
         (err.message?.toLowerCase().contains(_connectionClosedMessage) ??
             false)) {
       final requestOptions = err.requestOptions;
-      final currentRetryCount = (requestOptions.extra[_retryKey] ?? 0) as int;
+      final currentRetryCount = _resolveRetryCount(
+        requestOptions.extra[_retryKey],
+      );
+      requestOptions.extra[_retryKey] = currentRetryCount;
 
-      if (currentRetryCount < 3) {
-        requestOptions.extra[_retryKey] = currentRetryCount + 1;
+      if (currentRetryCount < _maxRetries) {
+        final nextRetryCount = currentRetryCount + 1;
+        requestOptions.extra[_retryKey] = nextRetryCount;
         final newData = _cloneRequestData(err.requestOptions.data);
         try {
           final response = await dio.fetch(
-            requestOptions.copyWith(data: newData),
+            requestOptions.copyWith(
+              data: newData,
+              extra: {...requestOptions.extra, _retryKey: nextRetryCount},
+            ),
           );
           return handler.resolve(response);
         } catch (e) {
-          return handler.next(e as DioException);
+          if (e is DioException) return handler.next(e);
+          return handler.next(
+            DioException(
+              requestOptions: requestOptions,
+              type: DioExceptionType.unknown,
+              error: e,
+              message: e.toString(),
+            ),
+          );
         }
       }
+
+      return handler.next(
+        err.copyWith(
+          message:
+              '${err.message ?? 'Request failed'} '
+              '(retried $currentRetryCount/$_maxRetries times)',
+        ),
+      );
     }
 
     super.onError(err, handler);
+  }
+
+  int _resolveRetryCount(Object? rawValue) {
+    if (rawValue is int) return rawValue;
+    if (rawValue is String) return int.tryParse(rawValue) ?? 0;
+    return 0;
   }
 
   dynamic _cloneRequestData(dynamic data) {

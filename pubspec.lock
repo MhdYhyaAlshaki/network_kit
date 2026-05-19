@@ -208,6 +208,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.0"
+  multiple_result:
+    dependency: "direct main"
+    description:
+      name: multiple_result
+      sha256: "22f35f4e7cd82a2e37c1975e256b3b9afb4c6cfc339075345530016b958aa5a2"
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.3.0"
   nm:
     dependency: transitive
     description:
@@ -366,5 +374,5 @@ packages:
     source: hosted
     version: "6.6.1"
 sdks:
-  dart: ">=3.9.0-0 <4.0.0"
+  dart: ">=3.10.8 <4.0.0"
   flutter: ">=3.19.0"
