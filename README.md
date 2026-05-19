@@ -82,6 +82,7 @@ final factory = NetworkKitFactory(
   config: NetworkConfig(
     baseUrl: 'https://example.com/api/',
     appVersion: '1.0.0',
+    autoAppVersion:false,
     enableLogging: true,
   ),
   events: NetworkEvents(
