@@ -14,7 +14,8 @@ Add path dependency (or publish and use version):
 ```yaml
 dependencies:
   network_kit:
-    path: packages/network_kit
+    git: 
+      https://github.com/MhdYhyaAlshaki/network_kit.git
 ```
 
 ## Example
