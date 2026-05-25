@@ -39,7 +39,7 @@
     },
     {
       "name": "connectivity_plus",
-      "rootUri": "file:///Users/mohammad/.pub-cache/hosted/pub.dev/connectivity_plus-6.1.5",
+      "rootUri": "file:///Users/mohammad/.pub-cache/hosted/pub.dev/connectivity_plus-7.1.1",
       "packageUri": "lib/",
       "languageVersion": "3.2"
     },
@@ -51,7 +51,7 @@
     },
     {
       "name": "dbus",
-      "rootUri": "file:///Users/mohammad/.pub-cache/hosted/pub.dev/dbus-0.7.12",
+      "rootUri": "file:///Users/mohammad/.pub-cache/hosted/pub.dev/dbus-0.7.13",
       "packageUri": "lib/",
       "languageVersion": "2.17"
     },
@@ -78,6 +78,12 @@
       "rootUri": "file:///Users/mohammad/.pub-cache/hosted/pub.dev/ffi-2.2.0",
       "packageUri": "lib/",
       "languageVersion": "3.7"
+    },
+    {
+      "name": "ffi_leak_tracker",
+      "rootUri": "file:///Users/mohammad/.pub-cache/hosted/pub.dev/ffi_leak_tracker-0.1.2",
+      "packageUri": "lib/",
+      "languageVersion": "3.10"
     },
     {
       "name": "flutter",
@@ -177,15 +183,15 @@
     },
     {
       "name": "package_info_plus",
-      "rootUri": "file:///Users/mohammad/.pub-cache/hosted/pub.dev/package_info_plus-8.3.1",
+      "rootUri": "file:///Users/mohammad/.pub-cache/hosted/pub.dev/package_info_plus-10.1.0",
       "packageUri": "lib/",
-      "languageVersion": "3.3"
+      "languageVersion": "3.10"
     },
     {
       "name": "package_info_plus_platform_interface",
-      "rootUri": "file:///Users/mohammad/.pub-cache/hosted/pub.dev/package_info_plus_platform_interface-3.2.1",
+      "rootUri": "file:///Users/mohammad/.pub-cache/hosted/pub.dev/package_info_plus_platform_interface-4.1.0",
       "packageUri": "lib/",
-      "languageVersion": "2.18"
+      "languageVersion": "3.10"
     },
     {
       "name": "path",
@@ -279,15 +285,15 @@
     },
     {
       "name": "win32",
-      "rootUri": "file:///Users/mohammad/.pub-cache/hosted/pub.dev/win32-5.15.0",
+      "rootUri": "file:///Users/mohammad/.pub-cache/hosted/pub.dev/win32-6.3.0",
       "packageUri": "lib/",
-      "languageVersion": "3.8"
+      "languageVersion": "3.10"
     },
     {
       "name": "xml",
-      "rootUri": "file:///Users/mohammad/.pub-cache/hosted/pub.dev/xml-6.6.1",
+      "rootUri": "file:///Users/mohammad/.pub-cache/hosted/pub.dev/xml-7.0.1",
       "packageUri": "lib/",
-      "languageVersion": "3.8"
+      "languageVersion": "3.11"
     },
     {
       "name": "network_kit",

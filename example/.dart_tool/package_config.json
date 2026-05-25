@@ -51,7 +51,7 @@
     },
     {
       "name": "dbus",
-      "rootUri": "file:///Users/mohammad/.pub-cache/hosted/pub.dev/dbus-0.7.12",
+      "rootUri": "file:///Users/mohammad/.pub-cache/hosted/pub.dev/dbus-0.7.13",
       "packageUri": "lib/",
       "languageVersion": "2.17"
     },
@@ -369,9 +369,9 @@
     },
     {
       "name": "xml",
-      "rootUri": "file:///Users/mohammad/.pub-cache/hosted/pub.dev/xml-6.6.1",
+      "rootUri": "file:///Users/mohammad/.pub-cache/hosted/pub.dev/xml-7.0.1",
       "packageUri": "lib/",
-      "languageVersion": "3.8"
+      "languageVersion": "3.11"
     },
     {
       "name": "network_kit_example",
