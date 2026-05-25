@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:network_kit/network_kit.dart'; 
+import 'package:network_kit/network_kit.dart';
+
 class LoopRequestsPage extends CancellablePage {
   const LoopRequestsPage({super.key, required super.cancelTokenService});
 
@@ -9,6 +10,7 @@ class LoopRequestsPage extends CancellablePage {
   CancellablePageState<LoopRequestsPage> createState() =>
       _LoopRequestsPageState();
 }
+
 class _LoopRequestsPageState extends CancellablePageState<LoopRequestsPage> {
   final TextEditingController _counterController = TextEditingController(
     text: '5',
@@ -28,9 +30,11 @@ class _LoopRequestsPageState extends CancellablePageState<LoopRequestsPage> {
     }
 
     final boundedTotal = total > 50 ? 50 : total;
-    final cancelToken = widget.cancelTokenService.getOrCreateCancelToken(
-      cancelContextKey,
-    );
+    //no need to create a cancel token for each loop, CancellablePage will auto-cancel all requests on dispose. If you want to cancel mid-loop, 
+    //you can create a cancel token here and check it inside the loop.
+    // final cancelToken = widget.cancelTokenService.getOrCreateCancelToken(
+    //   cancelContextKey,
+    // );
 
     setState(() {
       _isRunning = true;
@@ -44,22 +48,19 @@ class _LoopRequestsPageState extends CancellablePageState<LoopRequestsPage> {
     );
 
     for (var i = 1; i <= boundedTotal; i++) {
-      if (cancelToken.isCancelled) {
-        if (mounted) {
-          setState(() {
-            _logs.insert(0, 'Cancelled at request #$i');
-          });
-        }
-        break;
-      }
+      // if (cancelToken.isCancelled) {
+      //   if (mounted) {
+      //     setState(() {
+      //       _logs.insert(0, 'Cancelled at request #$i');
+      //     });
+      //   }
+      //   break;
+      // }
 
       final postId = ((i - 1) % 10) + 1;
 
       try {
-        final response = await dio.get(
-          'posts/$postId',
-          cancelToken: cancelToken,
-        );
+        final response = await dio.get('posts/$postId');
 
         if (!mounted) return;
         setState(() {
@@ -83,7 +84,7 @@ class _LoopRequestsPageState extends CancellablePageState<LoopRequestsPage> {
     });
   }
 
-  void _cancelLoop() { 
+  void _cancelLoop() {
     setState(() {
       _logs.insert(0, 'Cancel requested...');
     });
