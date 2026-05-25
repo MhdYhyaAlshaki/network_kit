@@ -1,7 +1,8 @@
 name: network_kit
 description: Reusable Flutter network toolkit with Dio factory, interceptors, connectivity, and request cancellation.
-version: 0.1.0
-publish_to: 'none'
+version: 1.0.0+1
+repository: https://github.com/MhdYhyaAlshaki/network_kit.git
+# publish_to: 'none'
 
 environment:
   sdk: ^3.7.2
