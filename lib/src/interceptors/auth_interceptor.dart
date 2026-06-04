@@ -29,7 +29,7 @@ class AuthInterceptor extends Interceptor {
   String get refreshUrl => config.refreshUrl;
 
   @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {    
     final token = preferences.accessToken;
     if (token.isNotEmpty) {
       options.headers[config.headerKeys.authorization] =
@@ -139,14 +139,38 @@ class AuthInterceptor extends Interceptor {
   Future<_RefreshedTokens> _refreshToken() async {
     final fcmToken = await preferences.fcmToken;
 
-    final response = await dio.post(
-      refreshUrl,
-      data: {
-        config.refreshTokenKey: preferences.refreshToken,
-        if (config.enableFcmToken && (fcmToken?.isNotEmpty ?? false))
-          config.fcmTokenKey: fcmToken,
-      },
-    );
+    // Prepare the base data/parameters that might be sent
+    final baseData = {
+      config.refreshTokenKey: preferences.refreshToken,
+      if (config.enableFcmToken && (fcmToken?.isNotEmpty ?? false))
+        config.fcmTokenKey: fcmToken,
+    };
+
+    late final Response<dynamic> response;
+
+    switch (config.refreshTokenSendMethod) {
+      case RefreshTokenSendMethod.body:
+        response = await dio.post(
+          refreshUrl,
+          data: baseData,
+        );
+      case RefreshTokenSendMethod.headers:
+        response = await dio.post(
+          refreshUrl,
+          options: Options(
+            headers: {
+              config.refreshTokenKey: preferences.refreshToken,
+              if (config.enableFcmToken && (fcmToken?.isNotEmpty ?? false))
+                config.fcmTokenKey: fcmToken,
+            },
+          ),
+        );
+      case RefreshTokenSendMethod.parameters:
+        response = await dio.post(
+          refreshUrl,
+          queryParameters: baseData,
+        );
+    }
 
     final code =
         response.data is Map

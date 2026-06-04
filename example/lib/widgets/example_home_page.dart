@@ -56,7 +56,7 @@ class _ExampleHomePageState extends State<ExampleHomePage> {
     final cancelToken = widget.cancelTokenService.getOrCreateCancelToken(this);
 
     try {
-      final dio = await NetworkKitFactory.dio(factoryName: factoryName);
+      final dio = await NetworkKitFactory.dio(factoryName: factoryName);   
       final response = await dio.get('posts/1', cancelToken: cancelToken);
       _setStatus(
         '[${factoryName ?? 'default'}] Success HTTP ${response.statusCode}',

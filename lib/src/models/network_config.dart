@@ -1,3 +1,15 @@
+/// Enum to specify how the refresh token should be sent in refresh token requests.
+enum RefreshTokenSendMethod {
+  /// Send refresh token in the request body/data
+  body,
+
+  /// Send refresh token in the request headers
+  headers,
+
+  /// Send refresh token as query parameters
+  parameters,
+}
+
 class NetworkHeaderKeys {
   final String contentType;
   final String language;
@@ -53,6 +65,8 @@ class NetworkConfig {
   final String refreshTokenKey;
   // The key used to send the device Firebase token in refresh request body.
   final String fcmTokenKey;
+  // Specifies how the refresh token should be sent in refresh token requests.
+  final RefreshTokenSendMethod refreshTokenSendMethod;
   // Optional custom decoder for access token value from refresh response.
   // When provided, this takes priority over key-based extraction.
   final RefreshTokenValueDecoder? accessTokenDecoder;
@@ -60,6 +74,7 @@ class NetworkConfig {
   // When provided, this takes priority over key-based extraction.
   final RefreshTokenValueDecoder? refreshTokenDecoder;
   final NetworkHeaderKeys headerKeys;
+ 
 
   const NetworkConfig({
     required this.baseUrl,
@@ -80,6 +95,7 @@ class NetworkConfig {
     this.accessTokenKey = 'access_token',
     this.refreshTokenKey = 'refresh_token',
     this.fcmTokenKey = 'fcmToken',
+    this.refreshTokenSendMethod = RefreshTokenSendMethod.body,
     this.accessTokenDecoder,
     this.refreshTokenDecoder,
     this.headerKeys = const NetworkHeaderKeys(),
