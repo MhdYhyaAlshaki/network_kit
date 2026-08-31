@@ -51,6 +51,10 @@ class NetworkConfig {
   final Duration idleTimeout;
   final Duration connectionTimeout;
   final bool enableLogging;
+  final bool enableCurlLogging;
+  final int curlHistoryLimit;
+  final bool printCurlOnRequest;
+  final bool printCurlOnError;
   final bool withCredentials;
   final bool includeOsHeader;
   final String? osOverride;
@@ -74,7 +78,6 @@ class NetworkConfig {
   // When provided, this takes priority over key-based extraction.
   final RefreshTokenValueDecoder? refreshTokenDecoder;
   final NetworkHeaderKeys headerKeys;
- 
 
   const NetworkConfig({
     required this.baseUrl,
@@ -86,6 +89,10 @@ class NetworkConfig {
     this.idleTimeout = const Duration(seconds: 30),
     this.connectionTimeout = const Duration(seconds: 5),
     this.enableLogging = false,
+    this.enableCurlLogging = false,
+    this.curlHistoryLimit = 20,
+    this.printCurlOnRequest = true,
+    this.printCurlOnError = false,
     this.withCredentials = true,
     this.includeOsHeader = true,
     this.osOverride,
@@ -99,7 +106,7 @@ class NetworkConfig {
     this.accessTokenDecoder,
     this.refreshTokenDecoder,
     this.headerKeys = const NetworkHeaderKeys(),
-  });
+  }) : assert(curlHistoryLimit >= 0, 'curlHistoryLimit must not be negative');
 
   String get refreshUrl => baseUrl + refreshPath;
 }

@@ -11,6 +11,7 @@ import '../cancel_token/cancel_token_service.dart';
 import '../interceptors/auth_interceptor.dart';
 import '../interceptors/cancel_interceptor.dart';
 import '../interceptors/connection_closed_interceptor.dart';
+import '../interceptors/curl_logging_interceptor.dart';
 import '../interceptors/general_dio_interceptor.dart';
 import '../interceptors/language_interceptor.dart';
 import '../models/dio_preferences.dart';
@@ -277,6 +278,16 @@ class NetworkKitFactory {
         refreshUrl: config.refreshUrl,
       ),
     );
+
+    if (config.enableCurlLogging) {
+      dio.interceptors.add(
+        CurlLoggingInterceptor(
+          historyLimit: config.curlHistoryLimit,
+          printCurlOnRequest: config.printCurlOnRequest,
+          printCurlOnError: config.printCurlOnError,
+        ),
+      );
+    }
 
     if (config.enableLogging) {
       dio.interceptors.add(
